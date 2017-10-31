@@ -1,8 +1,10 @@
-#include "FS.h"
-#include "SD.h"
+#include <FS.h>
+#include <SD.h>
 #include <Arduino.h>
+#include <driver/dac.h>
 
 #define BTN_STOP_ALARM    0
+//#define BUF_SIZE 384
 #define BUF_SIZE 384
 #define CH 0
 
@@ -18,10 +20,13 @@ volatile DobuleBuff dbuf[2];
 volatile uint8_t curPage=0;
 volatile int playPos;
 volatile uint8_t buffFull;
+uint32_t mainLoopCounter = 0;
+
 
 void IRAM_ATTR onTimer() {
     isrCounter++;
     // Print it
+    #if 0
     if ((isrCounter % 16129) == 0) {
         Serial.print("aaa onTimer no. ");
         Serial.print(isrCounter);
@@ -35,37 +40,35 @@ void IRAM_ATTR onTimer() {
         Serial.print(" ");
         Serial.print(dbuf[curPage].readed);
         Serial.print(" ");
-        Serial.println(buffFull);
+        Serial.print(buffFull);
+        Serial.print(" ");
+        Serial.print(dbuf[curPage].buffer[playPos]);
+        Serial.print(" ");
         Serial.println((long)(&dbuf), HEX);
     }
-    //printf("%d %d\n", dbuf[curPage].readed, playPos);
-    //Serial.print(playPos);
-    //Serial.print(" ");
-    //Serial.print(curPage);
-    //Serial.print(" ");
-    //Serial.print(dbuf[curPage].readed);
-    //Serial.print(" ");
-    //Serial.println(buffFull);
+    #endif
     uint8_t volume = dbuf[curPage].buffer[playPos++];
-    if (playPos == dbuf[curPage].readed) {
-        //printf("aaaaaaaaa 100 %d %d %d\n", playPos, curPage, buffFull);
-        Serial.println("aaaaaaaaaa100");
-        Serial.println(playPos);
-        Serial.println(curPage);
-        Serial.println(buffFull);
+    //Serial.print(curPage);
+    //Serial.print(",");
+    //Serial.print(playPos);
+    //Serial.print(",");
+    //Serial.print(volume);
+    //Serial.print(",");
+    //Serial.print(dbuf[curPage ^ 1].readed);
+    //Serial.println();
+    if ((isrCounter % 10) == 0) {
+        Serial.println(volume);
+    }
+    if (playPos >= dbuf[curPage].readed) {
         playPos = 0;
         curPage ^= 1;
         buffFull = 0;
-        //printf("aaaaaaaaa 101 %d %d %d\n", playPos, curPage, buffFull);
-        Serial.println("aaaaaaaaaa101");
-        Serial.println(playPos);
-        Serial.println(curPage);
-        Serial.println(buffFull);
     }
 
     // calculate duty, 8191 from 2 ^ 13 - 1
-    uint32_t duty = (8191 / 255) * min(volume, 255);
-    ledcWrite(CH, duty);
+    //uint32_t duty = (8191 / 255) * min(volume, 255);
+    //ledcWrite(CH, duty);
+    dac_out_voltage(DAC_CHANNEL_2, volume);
 }
 
 void setup() {
@@ -85,6 +88,7 @@ void setup() {
         Serial.println("No SD card attached");
         return;
     }
+    #if 1
     Serial.print("SD Card Type: ");
     if(cardType == CARD_MMC){
         Serial.println("MMC");
@@ -97,10 +101,11 @@ void setup() {
     }
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
+    #endif
 
     // PWM
-    ledcSetup(CH, 5000, 13);
-    ledcAttachPin(22, CH);
+    //ledcSetup(CH, 5000, 13);
+    //ledcAttachPin(22, CH);
 
     // setup buffer
     //memset(dbuf, 0, sizeof(dbuf));
@@ -116,37 +121,46 @@ void setup() {
 }
 
 void loop() {
-    Serial.println("aaaaaaaaaaaaaa 0");
+    //Serial.println("aaaaaaaaaaaaaa 0");
     File file = SD.open("/sound.wav");
     //File file = SD.open("/foo.txt");
     if (!file) {
         Serial.println("Failed to open file for reading");
         return;
     }
-    Serial.println("aaaaaaaaaaaaaa 1");
-    Serial.println((long)(&dbuf), HEX);
+    //Serial.println("aaaaaaaaaaaaaa 1");
+    //Serial.println((long)(&dbuf), HEX);
 
     // Skip WAV file header
-    //file.seek(44);
+    file.seek(44);
     while (true) {
-        //if ((isrCounter % 16129) == 0) {
+        //if ((mainLoopCounter++ % 1000000) == 0) {
         //    Serial.println("aaaaaaaaaaaaaa 1.0.0");
         //    Serial.println("aaaaaaaaaaaaaa 1.0");
         //    Serial.println(dbuf[curPage ^ 1].readed);
+        //    Serial.print(playPos);
+        //    Serial.print(" ");
+        //    Serial.print(curPage);
+        //    Serial.print(" ");
+        //    Serial.print(dbuf[curPage].readed);
+        //    Serial.print(" ");
+        //    Serial.println(buffFull);
         //}
         if (!buffFull) {
             dbuf[curPage ^ 1].readed = file.read((uint8_t*)(dbuf[curPage ^ 1].buffer), BUF_SIZE);
             buffFull = 1;
             #if 0
+            Serial.println(file.position());
+            //Serial.print(curPage);
             {
-                uint8_t *p = dbuf[curPage ^ 1].buffer;
+                uint8_t *p = (uint8_t*)dbuf[curPage ^ 1].buffer;
                 int size = dbuf[curPage ^ 1].readed;
-                printf("readed size=%d\n",size);
+                Serial.printf("readed size=%d\n",size);
                 for (int i=0;i<size;i+=16){
                     for (int j=0;j<16;j++){
-                        printf(" %02x", p[i+j]);
+                        Serial.printf(" %02x", p[i+j]);
                     }
-                    printf("\n");
+                    Serial.printf("\n");
                 }
             }
             #endif
@@ -163,5 +177,5 @@ void loop() {
             timer = NULL;
         }
     }
-    Serial.println("aaaaaaaaaaaaaa 2");
+    //Serial.println("aaaaaaaaaaaaaa 2");
 }
