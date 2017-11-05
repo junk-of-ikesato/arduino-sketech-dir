@@ -8,6 +8,8 @@
 #define BUF_SIZE 384+32*5
 #define CH 0
 
+#define USE_PWM 1
+
 hw_timer_t *timer = NULL;
 uint32_t isrCounter = 0;
 
@@ -35,11 +37,13 @@ void IRAM_ATTR onTimer() {
     }
 #endif
 
+    #if USE_PWM == 1
     // calculate duty, 8191 from 2 ^ 13 - 1
     //uint32_t duty = (8191 / 255) * min(volume, 255);
     ledcWrite(CH, volume);
-
-    //dac_out_voltage(DAC_CHANNEL_2, volume);
+    #else
+    dac_out_voltage(DAC_CHANNEL_2, volume*0.2);
+    #endif
 
 #if 0
     {// for debug
@@ -88,9 +92,11 @@ void setup() {
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
     #endif
 
+    #if USE_PWM == 1
     // PWM
-    ledcSetup(CH, 100000*1000, 8);
+    ledcSetup(CH, 100*1000*1000, 8);
     ledcAttachPin(26, CH);
+    #endif
 
     // setup buffer
     //memset(dbuf, 0, sizeof(dbuf));
