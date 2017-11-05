@@ -5,7 +5,7 @@
 
 #define BTN_STOP_ALARM    0
 //#define BUF_SIZE 384
-#define BUF_SIZE 384
+#define BUF_SIZE 384+32*5
 #define CH 0
 
 hw_timer_t *timer = NULL;
@@ -26,28 +26,6 @@ File file;
 void IRAM_ATTR onTimer() {
     //isrCounter++;
 #if 1
-    // Print it
-    #if 0
-    if ((isrCounter % 16129) == 0) {
-        Serial.print("aaa onTimer no. ");
-        Serial.print(isrCounter);
-        Serial.print(" at ");
-        Serial.print(millis());
-        Serial.println(" ms");
-
-        Serial.print(playPos);
-        Serial.print(" ");
-        Serial.print(curPage);
-        Serial.print(" ");
-        Serial.print(dbuf[curPage].readed);
-        Serial.print(" ");
-        Serial.print(buffFull);
-        Serial.print(" ");
-        Serial.print(dbuf[curPage].buffer[playPos]);
-        Serial.print(" ");
-        Serial.println((long)(&dbuf), HEX);
-    }
-    #endif
     uint8_t volume = dbuf[curPage].buffer[playPos++];
     //uint8_t volume = dbuf[curPage].buffer[playPos];
     if (playPos >= dbuf[curPage].readed) {
@@ -120,14 +98,6 @@ void setup() {
     playPos = 0;
     buffFull = 0;
 
-    timer = timerBegin(0, 80, true);
-    timerAttachInterrupt(timer, &onTimer, true);
-    timerAlarmWrite(timer, 31, true); // 32kHz Timer 1000000/(32*1000) = 31.25
-    //timerAlarmWrite(timer, 62, true); // 16kHz Timer 1000000/(16*1000) = 62.5
-    //timerAlarmWrite(timer, 22, true); // 16kHz Timer 1000000/(44*1000) = 22.72
-    timerAlarmEnable(timer);
-
-
 
     //file = SD.open("/a44.wav");
     file = SD.open("/o32.wav");
@@ -139,6 +109,16 @@ void setup() {
     }
     // Skip WAV file header
     file.seek(44);
+    uint8_t page = curPage;
+    dbuf[page].readed = file.read((uint8_t*)(dbuf[page].buffer), BUF_SIZE);
+
+
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, 31, true); // 32kHz Timer 1000000/(32*1000) = 31.25
+    //timerAlarmWrite(timer, 62, true); // 16kHz Timer 1000000/(16*1000) = 62.5
+    //timerAlarmWrite(timer, 22, true); // 16kHz Timer 1000000/(44*1000) = 22.72
+    timerAlarmEnable(timer);
 }
 
 void loop() {
