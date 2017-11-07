@@ -34,6 +34,7 @@ uint32_t time;
 // the setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(115200);
+  //Serial.begin(9600);
   Serial.println("hello");
 
   uint8_t outputPins[] = {2, 3, 11, 12, 13, A0, A2, A3, A4, A5};
@@ -64,7 +65,7 @@ void setup() {
   digitalWrite(A3, LOW); // KO4
   digitalWrite(A4, LOW); // KO5
   digitalWrite(A5, LOW); // KO6
-  wakeup();
+  //wakeup();
 
   /*
    * Enable Pin Change Interrupts
@@ -80,12 +81,25 @@ void setup() {
 
   irrecv.enableIRIn(); // Start the receiver
   time = millis();
+
+  for (int i=0; i<10; i++) {
+      digitalWrite(A0, HIGH); // LED
+      delay(100);
+      digitalWrite(A0, LOW); // LED
+      delay(100);
+  }
 }
 
 
 
 // the loop function runs over and over again forever
 void loop() {
+    for (int i=1; i<=3; i++) {
+        digitalWrite(A0, HIGH); // LED
+        delay(i*1000);
+        digitalWrite(A0, LOW); // LED
+        delay(1000);
+    }
     //if (digitalRead(5) == 0) Serial.println("aaaaaa KI1");
     //if (digitalRead(6) == 0) Serial.println("aaaaaa KI2");
     //if (digitalRead(7) == 0) Serial.println("aaaaaa KI3");

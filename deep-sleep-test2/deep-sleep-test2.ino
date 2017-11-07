@@ -20,11 +20,23 @@
   by Colby Newman
 */
 
+#include <avr/sleep.h>
+
+
+#undef LED_BUILTIN
+#define LED_BUILTIN 4
+
 
 // the setup function runs once when you press reset or power the board
 void setup() {
+    Serial.begin(115200);
+    Serial.println("\nhello world");
     // initialize digital pin LED_BUILTIN as an output.
     pinMode(LED_BUILTIN, OUTPUT);
+
+  for (int i=0; i<20; i++) {
+    pinMode(i, OUTPUT);
+  }
 }
 
 // the loop function runs over and over again forever
@@ -33,4 +45,43 @@ void loop() {
     delay(1000);                       // wait for a second
     digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
     delay(1000);                       // wait for a second
+    goToSleep();
 }
+
+
+
+void goToSleep() {
+//    Serial.println("going to sleep");
+//    delay(100);
+//
+//    // Disable ADC
+//    ADCSRA &= ~(1 << 7);
+//
+//    // Enable Sleep
+//    SMCR |= (1 << 2); // power down mode
+//    SMCR |= 1; // enable sleep
+//
+//    // Disable BOD
+//    MCUCR |= (3 << 5); // set both BODS and BODSE at the same time
+//    MCUCR = (MCUCR & ~(1 << 5)) | (1 << 6); // then set the BODS bit and clear the BODSE bit at the same time
+//
+//    __asm__ __volatile__("sleep");
+
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    //cli();
+    sleep_enable();
+    //sleep_bod_disable();
+    //sei();
+    //sleep_cpu();
+    sleep_mode();            // here the device is actually put to sleep!!
+
+    /* wake up here */
+    sleep_disable();
+
+    wakeup();
+}
+
+void wakeup() {
+    Serial.println("wakeup");
+}
+
